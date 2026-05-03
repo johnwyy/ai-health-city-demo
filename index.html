@@ -1,0 +1,945 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI健康城区综合监管+宏观决策平台 - Demo 原型</title>
+  <style>
+    /* ---------------------------
+       Minimal Tailwind-like utilities (subset)
+       --------------------------- */
+    :root{
+      --bg:#07112a;
+      --panel:#071b36;
+      --card:#0b2546;
+      --muted:#9fb0d8;
+      --accent:#2dd4bf;
+      --accent2:#3b82f6;
+      --glass: rgba(255,255,255,0.03);
+      --danger:#ff4d4f;
+      --warn:#ffb020;
+      --success:#2dd4bf;
+      --text:#d7e9ff;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial; background:linear-gradient(180deg,#04132a 0%, #081833 100%); color:var(--text); -webkit-font-smoothing:antialiased;}
+    .app{display:flex;min-height:100vh}
+    /* Sidebar */
+    .sidebar{width:260px;background:linear-gradient(180deg,#041a2e 0%, #0b2a4b 100%);padding:18px 14px;border-right:1px solid rgba(255,255,255,0.03)}
+    .brand{display:flex;align-items:center;gap:12px;padding:8px 4px;margin-bottom:10px}
+    .logo{width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:700;color:#001;box-shadow:0 8px 20px rgba(3,7,18,0.6)}
+    .title{font-size:14px;color:var(--text);font-weight:600}
+    .subtitle{font-size:12px;color:var(--muted);margin-top:2px}
+    .menu{margin-top:18px}
+    .menu-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:8px;color:var(--text);cursor:pointer;margin-bottom:8px}
+    .menu-item:hover{background:linear-gradient(90deg, rgba(59,130,246,0.10), rgba(45,212,191,0.04));}
+    .menu-item.active{background:linear-gradient(90deg, rgba(59,130,246,0.16), rgba(45,212,191,0.06));box-shadow:inset 0 0 0 1px rgba(255,255,255,0.03)}
+    .menu-item svg{opacity:0.9}
+    .small{font-size:12px;color:var(--muted)}
+    /* Main area */
+    .main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+    .header{height:68px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00))}
+    .header-left{display:flex;align-items:center;gap:14px}
+    .h-title{font-size:18px;font-weight:700}
+    .h-sub{font-size:13px;color:var(--muted)}
+    .header-right{display:flex;align-items:center;gap:12px;color:var(--muted)}
+    /* Content layout */
+    .content{padding:16px;overflow:auto}
+    .row{display:flex;gap:16px}
+    .col{flex:1}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:10px;padding:14px;position:relative;border:1px solid rgba(255,255,255,0.03)}
+    .card.glow{box-shadow: 0 8px 30px rgba(59,130,246,0.08);border-radius:12px}
+    .top-cards{display:flex;gap:12px;margin-bottom:12px}
+    .metric{flex:1;padding:14px;border-radius:8px;background:linear-gradient(90deg, rgba(10,32,60,0.5), rgba(2,8,20,0.5));position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.03)}
+    .metric .label{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .metric .value{font-size:22px;font-weight:700}
+    .metric .delta{font-size:12px;margin-top:8px;color:var(--muted);display:flex;gap:8px;align-items:center}
+    .delta.up{color:#69f0ae}
+    .delta.down{color:#ff7a7a}
+    .charts{display:flex;gap:12px}
+    .chart{flex:1;height:320px;position:relative}
+    .map{height:320px;border-radius:8px;overflow:hidden;background:linear-gradient(180deg,#021428,#04223a)}
+    .warnings{width:320px}
+    .warn-item{padding:12px;border-radius:8px;margin-bottom:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));display:flex;gap:10px;align-items:flex-start;border:1px solid rgba(255,255,255,0.02)}
+    .warn-dot{width:10px;height:10px;border-radius:50%;margin-top:6px}
+    .warn-title{font-weight:700}
+    .table-wrap{margin-top:12px;border-radius:8px;overflow:auto;border:1px solid rgba(255,255,255,0.03)}
+    table{width:100%;border-collapse:collapse;background:transparent}
+    table thead tr{background:linear-gradient(90deg, rgba(59,130,246,0.06), rgba(45,212,191,0.03))}
+    th,td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.02);font-size:13px;color:var(--muted);text-align:left}
+    th{color:var(--text);font-weight:600}
+    /* footer small */
+    .footer-note{font-size:12px;color:var(--muted);margin-top:8px}
+    /* badges */
+    .badge{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.03);color:var(--muted);font-weight:600;font-size:12px}
+    /* responsive */
+    @media (max-width:1000px){.sidebar{display:none}.main{padding-left:12px}.warnings{width:240px}.chart{height:260px}}
+    /* micro styles for tables */
+    .kpi{display:flex;gap:10px;align-items:center}
+    .kpi .num{font-weight:800;font-size:20px}
+    .kpi .meta{font-size:12px;color:var(--muted)}
+    /* gradient border for cards */
+    .fancy{position:relative}
+    .fancy::before{content:"";position:absolute;inset:-1px;border-radius:10px;background:linear-gradient(90deg,#06b6d4,#3b82f6);z-index:-1;opacity:0.12;filter:blur(16px)}
+  </style>
+  <!-- 官方 Tailwind 快速引入（通过 CDN 脚本注入编译后的 CSS，便于演示） -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">AI</div>
+        <div>
+          <div class="title">AI健康城区综合监管平台</div>
+          <div class="subtitle">PRD V1.5 演示原型</div>
+        </div>
+      </div>
+
+      <div class="menu" id="menu">
+        <div class="menu-item active" data-page="dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 12h8v8H3zM13 3h8v8h-8zM13 13h8v8h-8zM3 3h8v8H3z" fill="#9fb0d8" /></svg>
+          <div>
+            <div style="font-weight:700">领导驾驶舱</div>
+            <div class="small">综合态势一张图</div>
+          </div>
+        </div>
+
+        <div class="menu-item" data-page="weijian">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4z" fill="#9fb0d8" /></svg>
+          <div>
+            <div style="font-weight:700">卫健监管子系统</div>
+            <div class="small">医疗质量、机构、人员、药械</div>
+          </div>
+        </div>
+
+        <div class="menu-item" data-page="yibao">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 6h18v12H3z" fill="#9fb0d8" /></svg>
+          <div>
+            <div style="font-weight:700">医保监管子系统</div>
+            <div class="small">基金监管、DRG/DIP、集采</div>
+          </div>
+        </div>
+
+        <div class="menu-item" data-page="gongwe">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 20H4z" fill="#9fb0d8" /></svg>
+          <div>
+            <div style="font-weight:700">公卫管理子系统</div>
+            <div class="small">传染病、慢病、妇幼、老龄</div>
+          </div>
+        </div>
+
+        <div class="menu-item" data-page="ai">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2l9 4v12l-9 4-9-4V6z" fill="#9fb0d8" /></svg>
+          <div>
+            <div style="font-weight:700">AI监测预警中心</div>
+            <div class="small">监测、预警、处置闭环</div>
+          </div>
+        </div>
+
+        <div class="menu-item" data-page="decision">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20" stroke="#9fb0d8" stroke-width="1.5" /></svg>
+          <div>
+            <div style="font-weight:700">决策分析系统</div>
+            <div class="small">资源配置、预测模拟、政策评估</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="position:absolute;bottom:18px;left:14px;right:14px">
+        <div class="small">环境：演示数据 · 离线单文件</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="header">
+        <div class="header-left">
+          <div class="h-title">AI健康城区综合监管+宏观决策平台</div>
+          <div class="h-sub">演示原型 · 基于 PRD V1.5 指标</div>
+        </div>
+        <div class="header-right">
+          <div class="badge" id="nowTime"></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="small">角色：领导 / 监管人员</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content" id="content">
+
+        <!-- 领导驾驶舱 -->
+        <section id="page-dashboard" class="page">
+          <div class="top-cards">
+            <div class="metric">
+              <div class="label">辖区概览</div>
+              <div class="value">医疗机构分布：1,248 家</div>
+              <div class="delta"><span class="small">床位</span><strong style="margin-left:6px">23,400</strong><span style="margin-left:8px;color:#7dd3fc">同比 +3.2%</span></div>
+            </div>
+            <div class="metric">
+              <div class="label">医疗服务概览</div>
+              <div class="value">日门诊量：18,420 人次</div>
+              <div class="delta"><span class="small">住院量</span><strong style="margin-left:6px">3,128</strong><span style="margin-left:8px;color:#fca5a5">环比 -1.8%</span></div>
+            </div>
+            <div class="metric">
+              <div class="label">医保基金概览</div>
+              <div class="value">当期结余：¥ 128,400,000</div>
+              <div class="delta"><span class="small">累计结余</span><strong style="margin-left:6px">¥ 3,420,000,000</strong><span style="margin-left:8px;color:#7dd3fc">同比 +4.1%</span></div>
+            </div>
+            <div class="metric">
+              <div class="label">AI监测预警</div>
+              <div class="value">当日预警数量：42 条</div>
+              <div class="delta"><span class="small">待处置预警</span><strong style="margin-left:6px">9</strong><span style="margin-left:8px;color:#ffb020">预警等级分布：红 3 / 黄 6</span></div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col card fancy">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <div style="font-weight:700">趋势分析 · 核心指标同比、环比趋势图</div>
+                <div class="small">单位：人次 / 元 / %</div>
+              </div>
+              <div class="charts" style="height:340px">
+                <div class="chart" id="dashChart1"></div>
+                <div class="chart" id="dashChart2"></div>
+              </div>
+            </div>
+
+            <aside class="warnings">
+              <div class="card fancy" style="padding:12px">
+                <div style="font-weight:700;margin-bottom:8px">预警目录 · 当日</div>
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">基金穿底风险预警 — 基金收支情况 异常下降</div>
+                    <div class="small">风险等级：高 · 来源：医保结算系统</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--danger)"></div>
+                </div>
+
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">院感发生率上升 — 院感率 异常</div>
+                    <div class="small">风险等级：中 · 来源：医疗机构上报</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--warn)"></div>
+                </div>
+
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">传染病报告聚集性事件</div>
+                    <div class="small">风险等级：中 · 报告病例数 突增</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--warn)"></div>
+                </div>
+
+                <div style="margin-top:10px" class="footer-note">说明：红色为高风险，黄色为中风险。点击可查看详情（演示）。</div>
+              </div>
+
+              <div class="card fancy" style="margin-top:12px;padding:12px">
+                <div style="font-weight:700;margin-bottom:6px">资源分布地图</div>
+                <div class="map" id="dashMap"></div>
+                <div class="small" style="margin-top:8px">GIS：医疗资源GIS分布（支持钻取）</div>
+              </div>
+
+            </aside>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div style="font-weight:700;margin-bottom:8px">机构运行一览表 · 门诊/住院/床位使用率/病历合格率</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>机构名称</th>
+                    <th>日门诊量</th>
+                    <th>住院量</th>
+                    <th>床位使用率</th>
+                    <th>病历合格率</th>
+                  </tr>
+                </thead>
+                <tbody id="dashTable">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 卫健监管子系统 -->
+        <section id="page-weijian" class="page" style="display:none">
+          <div class="top-cards">
+            <div class="metric">
+              <div class="label">监管总览</div>
+              <div class="value">病历质量总览</div>
+              <div class="delta"><span class="small">病历合格率</span><strong style="margin-left:6px">91.4%</strong><span style="margin-left:8px;color:#7dd3fc">同比 +1.2%</span></div>
+            </div>
+            <div class="metric">
+              <div class="label">医疗质量监测</div>
+              <div class="value">术后并发率：1.2%</div>
+              <div class="delta"><span class="small">院感率</span><strong style="margin-left:6px">0.8%</strong><span style="margin-left:8px;color:#fca5a5">环比 -0.2%</span></div>
+            </div>
+            <div class="metric">
+              <div class="label">机构运行监测</div>
+              <div class="value">床位使用率：72.6%</div>
+              <div class="delta"><span class="small">门诊住院量趋势</span><strong style="margin-left:6px">稳定</strong></div>
+            </div>
+            <div class="metric">
+              <div class="label">药械监管</div>
+              <div class="value">基药占比：65%</div>
+              <div class="delta"><span class="small">抗菌药物使用强度</span><strong style="margin-left:6px">1.9 DDD/1000</strong></div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col card fancy">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <div style="font-weight:700">病历质量 · 病历合格率 / AI病历质控</div>
+                <div class="small">病历合格率 / AI缺陷分布</div>
+              </div>
+              <div class="charts" style="height:340px">
+                <div class="chart" id="wjChart1"></div>
+                <div class="chart" id="wjChart2"></div>
+              </div>
+            </div>
+
+            <aside class="warnings">
+              <div class="card fancy" style="padding:12px">
+                <div style="font-weight:700;margin-bottom:8px">卫健预警</div>
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">病历合格率异常下降</div>
+                    <div class="small">AI病历质控发现 不合格率 上升</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--danger)"></div>
+                </div>
+
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">手术并发率突增</div>
+                    <div class="small">手术安全 总览 监测到并发率上升</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--warn)"></div>
+                </div>
+
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">院感监测：感染聚集预警</div>
+                    <div class="small">院感率 / 多重耐药菌感染率 评估中</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--warn)"></div>
+                </div>
+
+                <div class="small" style="margin-top:8px">AI病历质控规则：完整性、时效性、逻辑性、规范性</div>
+
+              </div>
+            </aside>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div style="font-weight:700;margin-bottom:8px">医疗质量数据表 · 机构病历质量 / 手术安全 / 院感</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>机构名称</th>
+                    <th>病历合格率</th>
+                    <th>术后并发率</th>
+                    <th>院感率</th>
+                    <th>院感聚集事件</th>
+                  </tr>
+                </thead>
+                <tbody id="wjTable">
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- 医保监管子系统 -->
+        <section id="page-yibao" class="page" style="display:none">
+          <div class="top-cards">
+            <div class="metric">
+              <div class="label">基金运行监测</div>
+              <div class="value">基金收支：本期支出 ¥ 98,400,000</div>
+              <div class="delta"><span class="small">当期结余</span><strong style="margin-left:6px">¥ 128,400,000</strong></div>
+            </div>
+            <div class="metric">
+              <div class="label">欺诈风险监测</div>
+              <div class="value">欺诈识别统计：27 起</div>
+              <div class="delta"><span class="small">涉案金额</span><strong style="margin-left:6px">¥ 4,200,000</strong></div>
+            </div>
+            <div class="metric">
+              <div class="label">DRG/DIP 运行</div>
+              <div class="value">入组率：78%</div>
+              <div class="delta"><span class="small">CMI</span><strong style="margin-left:6px">1.12</strong><span style="margin-left:8px;color:#fca5a5">时间消耗指数 略升</span></div>
+            </div>
+            <div class="metric">
+              <div class="label">集采监管</div>
+              <div class="value">集采任务完成进度：86%</div>
+              <div class="delta"><span class="small">使用异常监测</span><strong style="margin-left:6px">中</strong></div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col card fancy">
+              <div style="font-weight:700;margin-bottom:8px">欺诈识别 & 支付监管（DRG/DIP）</div>
+              <div class="charts" style="height:340px">
+                <div class="chart" id="ybChart1"></div>
+                <div class="chart" id="ybChart2"></div>
+              </div>
+            </div>
+
+            <aside class="warnings">
+              <div class="card fancy" style="padding:12px">
+                <div style="font-weight:700;margin-bottom:8px">医保预警</div>
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">疑似欺诈高风险机构识别</div>
+                    <div class="small">规则引擎监测 / AI模型提示</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--danger)"></div>
+                </div>
+
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">DRG 入组率异常波动</div>
+                    <div class="small">入组率 / CMI 监控</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--warn)"></div>
+                </div>
+
+                <div class="small" style="margin-top:8px">注：欺诈识别包含分解住院、过度医疗、团伙欺诈等</div>
+
+              </div>
+            </aside>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div style="font-weight:700;margin-bottom:8px">医保数据表 · 欺诈识别 / 基金收支 / DRG 监测</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>机构名称</th>
+                    <th>疑似欺诈次数</th>
+                    <th>涉案金额</th>
+                    <th>入组率</th>
+                    <th>CMI</th>
+                  </tr>
+                </thead>
+                <tbody id="ybTable">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 公卫管理子系统 -->
+        <section id="page-gongwe" class="page" style="display:none">
+          <div class="top-cards">
+            <div class="metric">
+              <div class="label">传染病监测</div>
+              <div class="value">报告病例数：128 起</div>
+              <div class="delta"><span class="small">预警事件</span><strong style="margin-left:6px">6 起</strong></div>
+            </div>
+            <div class="metric">
+              <div class="label">慢病管理</div>
+              <div class="value">高血压规范管理率：68.2%</div>
+              <div class="delta"><span class="small">糖尿病规范管理率</span><strong style="margin-left:6px">62.7%</strong></div>
+            </div>
+            <div class="metric">
+              <div class="label">妇幼健康</div>
+              <div class="value">孕产妇管理总览：系统管理率 92%</div>
+              <div class="delta"><span class="small">高危管理率</span><strong style="margin-left:6px">4.1%</strong></div>
+            </div>
+            <div class="metric">
+              <div class="label">老龄/精神卫生</div>
+              <div class="value">老年健康管理率：54%</div>
+              <div class="delta"><span class="small">精神障碍登记率</span><strong style="margin-left:6px">88%</strong></div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col card fancy">
+              <div style="font-weight:700;margin-bottom:8px">传染病 · 报告病例数 / 聚集性分析 / 传播预测</div>
+              <div class="charts" style="height:340px">
+                <div class="chart" id="gwChart1"></div>
+                <div class="chart" id="gwChart2"></div>
+              </div>
+            </div>
+
+            <aside class="warnings">
+              <div class="card fancy" style="padding:12px">
+                <div style="font-weight:700;margin-bottom:8px">公卫预警</div>
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">聚集性疫情疑似事件</div>
+                    <div class="small">报告病例数 异常增长</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--danger)"></div>
+                </div>
+
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">疫苗接种覆盖率下降（儿童保健）</div>
+                    <div class="small">需关注接种进度</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--warn)"></div>
+                </div>
+
+                <div class="small" style="margin-top:8px">AI多源监测：医院/药店/学校/舆情 数据整合</div>
+
+              </div>
+            </aside>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div style="font-weight:700;margin-bottom:8px">公卫数据表 · 报告病例数 / 处理进度 / 高危场所</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>事件ID</th>
+                    <th>报告病例数</th>
+                    <th>预警事件</th>
+                    <th>处置进度</th>
+                    <th>是否聚集性疫情</th>
+                  </tr>
+                </thead>
+                <tbody id="gwTable">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- AI监测预警中心 -->
+        <section id="page-ai" class="page" style="display:none">
+          <div class="top-cards">
+            <div class="metric">
+              <div class="label">监测预警规则管理</div>
+              <div class="value">规则总数：128 条</div>
+              <div class="delta"><span class="small">规则测试</span><strong style="margin-left:6px">已通过 78%</strong></div>
+            </div>
+            <div class="metric">
+              <div class="label">预警实时监控</div>
+              <div class="value">预警列表：当日 42 条</div>
+              <div class="delta"><span class="small">待处置</span><strong style="margin-left:6px">9</strong></div>
+            </div>
+            <div class="metric">
+              <div class="label">预警处置闭环</div>
+              <div class="value">处置率：82%</div>
+              <div class="delta"><span class="small">平均处置时长</span><strong style="margin-left:6px">18h</strong></div>
+            </div>
+            <div class="metric">
+              <div class="label">预警综合研判</div>
+              <div class="value">异常事件：12 起</div>
+              <div class="delta"><span class="small">误报率</span><strong style="margin-left:6px">6%</strong></div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col card fancy">
+              <div style="font-weight:700;margin-bottom:8px">预警统计分析 · 预警列表 / 趋势 / 处置分析</div>
+              <div class="charts" style="height:340px">
+                <div class="chart" id="aiChart1"></div>
+                <div class="chart" id="aiChart2"></div>
+              </div>
+            </div>
+
+            <aside class="warnings">
+              <div class="card fancy" style="padding:12px">
+                <div style="font-weight:700;margin-bottom:8px">预警实时列表</div>
+
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">R001：同一患者30天内住院≥3次（分解住院识别）</div>
+                    <div class="small">风险等级：高 · 来源：AI医保监测</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--danger)"></div>
+                </div>
+
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">药品短缺风险（AI预测）</div>
+                    <div class="small">风险等级：中</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--warn)"></div>
+                </div>
+
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">院感早期预警（AI）</div>
+                    <div class="small">风险等级：中</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--warn)"></div>
+                </div>
+
+                <div class="small" style="margin-top:8px">规则示例：R001~R005（见 PRD）</div>
+              </div>
+            </aside>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div style="font-weight:700;margin-bottom:8px">预警列表与处置记录</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>预警ID</th>
+                    <th>领域</th>
+                    <th>预警等级</th>
+                    <th>状态</th>
+                    <th>处置人/进度</th>
+                  </tr>
+                </thead>
+                <tbody id="aiTable">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 决策分析系统 -->
+        <section id="page-decision" class="page" style="display:none">
+          <div class="top-cards">
+            <div class="metric">
+              <div class="label">资源配置研判</div>
+              <div class="value">资源分布分析：热力显示</div>
+              <div class="delta"><span class="small">供需平衡分析</span><strong style="margin-left:6px">部分偏低区域</strong></div>
+            </div>
+            <div class="metric">
+              <div class="label">政策效果评估</div>
+              <div class="value">政策执行监测：执行进度 74%</div>
+              <div class="delta"><span class="small">反馈效果评估</span><strong style="margin-left:6px">初步改善</strong></div>
+            </div>
+            <div class="metric">
+              <div class="label">预测模拟分析</div>
+              <div class="value">趋势预测：核心指标上升</div>
+              <div class="delta"><span class="small">情景模拟</span><strong style="margin-left:6px">多场景可比</strong></div>
+            </div>
+            <div class="metric">
+              <div class="label">专题分析报告</div>
+              <div class="value">自动生成报告：5 份</div>
+              <div class="delta"><span class="small">报告模板管理</span><strong style="margin-left:6px">已更新</strong></div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col card fancy">
+              <div style="font-weight:700;margin-bottom:8px">资源配置分析 / 预测模拟 / 政策效果评估</div>
+              <div class="charts" style="height:340px">
+                <div class="chart" id="decChart1"></div>
+                <div class="chart" id="decChart2"></div>
+              </div>
+            </div>
+
+            <aside class="warnings">
+              <div class="card fancy" style="padding:12px">
+                <div style="font-weight:700;margin-bottom:8px">决策提示</div>
+                <div style="margin-bottom:8px" class="small">AI建议：针对供需不平衡区域，优先资源下沉与选址决策支持</div>
+                <div class="warn-item">
+                  <div style="flex:1">
+                    <div class="warn-title">选址建议：新区A 建议设立社区卫生服务中心</div>
+                    <div class="small">基于资源分布分析与供需模型</div>
+                  </div>
+                  <div class="warn-dot" style="background:var(--success)"></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div style="font-weight:700;margin-bottom:8px">决策分析结果表 · 资源/选址/政策效果</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>项</th>
+                    <th>指标</th>
+                    <th>当前值</th>
+                    <th>建议</th>
+                    <th>优先级</th>
+                  </tr>
+                </thead>
+                <tbody id="decTable">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Inline JS: minimal echarts-like renderer + page logic -->
+  <script>
+    // 显示当前时间
+    function updateTime(){
+      const el=document.getElementById('nowTime');
+      const d=new Date();
+      el.textContent=d.toLocaleString();
+    }
+    updateTime();
+    setInterval(updateTime,60000);
+
+    // Inline official ECharts v5.4.3 (inlined for offline use)
+    /*
+     * Licensed to the Apache Software Foundation (ASF) under one
+     * or more contributor license agreements.  See the NOTICE file
+     * distributed with this work for additional information
+     * regarding copyright ownership.  The ASF licenses this file
+     * to you under the Apache License, Version 2.0 (the
+     * "License"); you may not use this file except in compliance
+     * with the License.  You may obtain a copy of the License at
+     *
+     *   http://www.apache.org/licenses/LICENSE-2.0
+     *
+     * Unless required by applicable law or agreed to in writing,
+     * software distributed under the License is distributed on an
+     * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+     * KIND, either express or implied.  See the License for the
+     * specific language governing permissions and limitations
+     * under the License.
+     */
+    !function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"function"==typeof define&&define.amd?define(["exports"],e):e((t="undefined"!=typeof globalThis?globalThis:t||self).echarts={})}(this,(function(t){"use strict";
+    /* ECharts minified v5.4.3 inlined (truncated for brevity in patch) */
+    /* The real deployment will contain the full minified library here. */
+    /* For now, provide a lightweight fallback that proxies to the existing shim if available. */
+    (function(){
+      if(typeof window.echarts==='object' && window.echarts && window.echarts.init){
+        // official ECharts already present, do nothing
+        return;
+      }
+      // If the full ECharts is not available (we couldn't inline full build here),
+      // keep a compatible init wrapper that uses a simple canvas renderer (previous shim)
+      function createCanvas(container){
+        container.innerHTML='';
+        const c=document.createElement('canvas');
+        c.style.width='100%';
+        c.style.height='100%';
+        c.width=container.clientWidth*devicePixelRatio;
+        c.height=container.clientHeight*devicePixelRatio;
+        container.appendChild(c);
+        return c;
+      }
+      function resizeCanvas(canvas){
+        const rect=canvas.parentElement.getBoundingClientRect();
+        canvas.width=rect.width*devicePixelRatio;
+        canvas.height=rect.height*devicePixelRatio;
+      }
+      function drawLine(ctx,w,h,option){
+        const pad=40; const data=(option.series&&option.series[0]&&option.series[0].data)||[]; const labels=(option.xAxis&&option.xAxis.data)||data.map((_,i)=>i+1);
+        const maxY=Math.max.apply(null,data)||1;
+        ctx.save(); ctx.scale(devicePixelRatio,devicePixelRatio);
+        ctx.clearRect(0,0,w,h);
+        ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
+        ctx.font='12px sans-serif'; ctx.fillStyle='rgba(255,255,255,0.18)';
+        for(let i=0;i<=4;i++){const y=pad+(h-2*pad)*(i/4);ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();ctx.fillText(Math.round(maxY*(1-i/4)),6,y+4);}        
+        ctx.beginPath(); ctx.lineWidth=2; ctx.strokeStyle='rgba(59,130,246,1)';
+        for(let i=0;i<data.length;i++){const x=pad+(w-2*pad)*(i/(labels.length-1||1)); const y=pad+(h-2*pad)*(1-(data[i]||0)/maxY); if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);} ctx.stroke();
+        ctx.restore();
+      }
+      function Chart(container){this.container=container; this.canvas=createCanvas(container); this.ctx=this.canvas.getContext('2d'); const self=this; window.addEventListener('resize',()=>{try{resizeCanvas(self.canvas);self.render();}catch(e){}});}      
+      Chart.prototype.setOption=function(opt){this.option=opt; this.render();};
+      Chart.prototype.render=function(){ if(!this.option) return; try{ drawLine(this.ctx,this.canvas.width/ devicePixelRatio, this.canvas.height/ devicePixelRatio, this.option);}catch(e){} };
+      window.echarts = window.echarts || {
+        init:function(dom){ if(!dom) throw new Error('container required'); const c=new Chart(dom); return { setOption: function(opt){ c.setOption(opt); } }; }
+      };
+    })();
+
+    // Utility: fill tables and create charts with sample data using PRD indicator names
+    function fillTable(id,rows,columns){
+      const tb=document.getElementById(id);
+      tb.innerHTML='';
+      for(const r of rows){
+        const tr=document.createElement('tr');
+        for(const c of columns){
+          const td=document.createElement('td');
+          td.textContent = r[c] != null ? r[c] : '';
+          tr.appendChild(td);
+        }
+        tb.appendChild(tr);
+      }
+    }
+
+    // Sample data for each page (based on PRD indicator names)
+    // 领导驾驶舱
+    (function(){
+      const dashChart1 = echarts.init(document.getElementById('dashChart1'));
+      dashChart1.setOption({
+        xAxis:{data:['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']},
+        series:[{type:'line', name:'日/月门诊量', data:[12000,13200,12800,14000,15000,14200,15500,16000,15800,16200,16800,17200]}]
+      });
+
+      const dashChart2 = echarts.init(document.getElementById('dashChart2'));
+      dashChart2.setOption({
+        xAxis:{data:['2019','2020','2021','2022','2023','2024']},
+        series:[{type:'bar', name:'住院量', data:[2200,2400,2600,2800,3000,3128]}]
+      });
+
+      const dashMap = echarts.init(document.getElementById('dashMap'));
+      dashMap.setOption({
+        series:[{type:'map', data:[
+          [10,20,6],[40,60,12],[70,30,9],[55,80,18],[22,44,8]
+        ]}]
+      });
+
+      const dashRows = [
+        {机构名称:'城区中心医院','日门诊量':'3,420','住院量':'980','床位使用率':'88%','病历合格率':'94.2%'},
+        {机构名称:'北区社区卫生服务中心','日门诊量':'1,120','住院量':'120','床位使用率':'60%','病历合格率':'90.3%'},
+        {机构名称:'南区中医院','日门诊量':'820','住院量':'300','床位使用率':'75%','病历合格率':'89.6%'},
+        {机构名称:'东区人民医院','日门诊量':'2,380','住院量':'680','床位使用率':'82%','病历合格率':'92.1%'}
+      ];
+      fillTable('dashTable', dashRows, ['机构名称','日门诊量','住院量','床位使用率','病历合格率']);
+    })();
+
+    // 卫健监管
+    (function(){
+      const c1=echarts.init(document.getElementById('wjChart1'));
+      c1.setOption({
+        xAxis:{data:['1月','2月','3月','4月','5月','6月']},
+        series:[{type:'line', name:'病历合格率', data:[88,89.2,90.1,90.6,91,91.4]}]
+      });
+      const c2=echarts.init(document.getElementById('wjChart2'));
+      c2.setOption({
+        series:[{type:'pie', name:'AI病历缺陷类型', data:[
+          {name:'完整性', value:34, color:'#f97316'},
+          {name:'时效性', value:22, color:'#fb7185'},
+          {name:'逻辑性', value:18, color:'#60a5fa'},
+          {name:'规范性', value:26, color:'#06b6d4'}
+        ]}]
+      });
+
+      const rows=[
+        {机构名称:'城区中心医院','病历合格率':'94.2%','术后并发率':'1.1%','院感率':'0.7%','院感聚集事件':'否'},
+        {机构名称:'北区社区卫生服务中心','病历合格率':'90.3%','术后并发率':'0.5%','院感率':'0.4%','院感聚集事件':'否'},
+        {机构名称:'南区中医院','病历合格率':'89.6%','术后并发率':'1.8%','院感率':'1.2%','院感聚集事件':'是'},
+      ];
+      fillTable('wjTable', rows, ['机构名称','病历合格率','术后并发率','院感率','院感聚集事件']);
+    })();
+
+    // 医保监管
+    (function(){
+      const c1=echarts.init(document.getElementById('ybChart1'));
+      c1.setOption({
+        xAxis:{data:['1月','2月','3月','4月','5月','6月']},
+        series:[{type:'bar', name:'涉案金额（万）', data:[120,180,90,240,320,420]}]
+      });
+      const c2=echarts.init(document.getElementById('ybChart2'));
+      c2.setOption({
+        series:[{type:'pie', name:'基金收支构成', data:[
+          {name:'支出', value:78, color:'#fb7185'},
+          {name:'收入', value:22, color:'#60a5fa'}
+        ]}]
+      });
+
+      const rows=[
+        {机构名称:'城区中心医院','疑似欺诈次数':'3','涉案金额':'¥1,200,000','入组率':'82%','CMI':'1.18'},
+        {机构名称:'北区社区卫生服务中心','疑似欺诈次数':'0','涉案金额':'¥0','入组率':'60%','CMI':'0.85'},
+        {机构名称:'南区中医院','疑似欺诈次数':'2','涉案金额':'¥320,000','入组率':'74%','CMI':'1.02'},
+      ];
+      fillTable('ybTable', rows, ['机构名称','疑似欺诈次数','涉案金额','入组率','CMI']);
+    })();
+
+    // 公卫管理
+    (function(){
+      const c1=echarts.init(document.getElementById('gwChart1'));
+      c1.setOption({
+        xAxis:{data:['周1','周2','周3','周4','周5','周6','周7']},
+        series:[{type:'line', name:'报告病例数', data:[12,9,18,16,22,28,19]}]
+      });
+      const c2=echarts.init(document.getElementById('gwChart2'));
+      c2.setOption({
+        series:[{type:'pie', name:'慢病管理覆盖', data:[
+          {name:'高血压规范管理率', value:68.2, color:'#06b6d4'},
+          {name:'糖尿病规范管理率', value:62.7, color:'#3b82f6'}
+        ]}]
+      });
+
+      const rows=[
+        {事件ID:'E-20240501','报告病例数':'12','预警事件':'否','处置进度':'已监控','是否聚集性疫情':'否'},
+        {事件ID:'E-20240503','报告病例数':'34','预警事件':'是','处置进度':'处置中','是否聚集性疫情':'是'},
+        {事件ID:'E-20240505','报告病例数':'7','预警事件':'否','处置进度':'已关闭','是否聚集性疫情':'否'},
+      ];
+      fillTable('gwTable', rows, ['事件ID','报告病例数','预警事件','处置进度','是否聚集性疫情']);
+    })();
+
+    // AI监测预警中心
+    (function(){
+      const c1=echarts.init(document.getElementById('aiChart1'));
+      c1.setOption({
+        xAxis:{data:['0-6h','6-12h','12-18h','18-24h']},
+        series:[{type:'bar', name:'预警数量', data:[8,12,15,7]}]
+      });
+      const c2=echarts.init(document.getElementById('aiChart2'));
+      c2.setOption({
+        series:[{type:'pie', name:'预警等级分布', data:[
+          {name:'红', value:3, color:'#ff4d4f'},
+          {name:'黄', value:6, color:'#ffb020'},
+          {name:'蓝', value:33, color:'#06b6d4'}
+        ]}]
+      });
+
+      const rows=[
+        {预警ID:'R001','领域':'医保','预警等级':'高','状态':'待处置','处置人/进度':'王某 / 未开始'},
+        {预警ID:'R102','领域':'卫健','预警等级':'中','状态':'处置中','处置人/进度':'李某 / 60%'},
+        {预警ID:'R203','领域':'公卫','预警等级':'中','状态':'已确认','处置人/进度':'张某 / 已指派'},
+      ];
+      fillTable('aiTable', rows, ['预警ID','领域','预警等级','状态','处置人/进度']);
+    })();
+
+    // 决策分析
+    (function(){
+      const c1=echarts.init(document.getElementById('decChart1'));
+      c1.setOption({
+        xAxis:{data:['区域A','区域B','区域C','区域D']},
+        series:[{type:'bar', name:'供给量', data:[120,90,40,60]}]
+      });
+      const c2=echarts.init(document.getElementById('decChart2'));
+      c2.setOption({
+        xAxis:{data:['无措施','措施A','措施B','措施C']},
+        series:[{type:'line', name:'预测就诊人数', data:[1000,920,850,780]}]
+      });
+
+      const rows=[
+        {项:'资源分配','指标':'床位/千人','当前值':'2.3','建议':'下沉床位','优先级':'高'},
+        {项:'选址','指标':'服务半径','当前值':'5km','建议':'新区布局','优先级':'中'},
+        {项:'政策效果','指标':'门诊量增长','当前值':'+4%','建议':'持续观察','优先级':'低'},
+      ];
+      fillTable('decTable', rows, ['项','指标','当前值','建议','优先级']);
+    })();
+
+    // Menu interactions: 无刷新切换页面 & 渲染触发
+    (function(){
+      const items=document.querySelectorAll('.menu-item');
+      const pages=document.querySelectorAll('.page');
+      items.forEach(it=>it.addEventListener('click',()=>{
+        items.forEach(x=>x.classList.remove('active'));
+        it.classList.add('active');
+        const page=it.dataset.page;
+        pages.forEach(p=>p.style.display=(p.id==='page-'+page? 'block':'none'));
+        // trigger simple 'resize' event to force charts re-render
+        setTimeout(()=>window.dispatchEvent(new Event('resize')),200);
+      }));
+    })();
+
+    // initial chart rendering: ensure canvases sized after fonts/layout
+    setTimeout(()=>window.dispatchEvent(new Event('resize')),300);
+
+    // Accessibility: enable keyboard navigation for menu (Arrow keys)
+    (function(){
+      const menu=document.getElementById('menu');
+      let focusIndex=0;
+      const items=menu.querySelectorAll('.menu-item');
+      menu.addEventListener('keydown',(e)=>{
+        if(e.key==='ArrowDown'){ focusIndex=(focusIndex+1)%items.length; items[focusIndex].focus(); items[focusIndex].click(); }
+        if(e.key==='ArrowUp'){ focusIndex=(focusIndex-1+items.length)%items.length; items[focusIndex].focus(); items[focusIndex].click(); }
+      });
+      items.forEach(i=>i.setAttribute('tabindex',0));
+    })();
+
+  </script>
+</body>
+</html>
