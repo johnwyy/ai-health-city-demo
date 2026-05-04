@@ -81,9 +81,16 @@
     /* gradient border for cards */
     .fancy{position:relative}
     .fancy::before{content:"";position:absolute;inset:-1px;border-radius:10px;background:linear-gradient(90deg,#06b6d4,#3b82f6);z-index:-1;opacity:0.12;filter:blur(16px)}
+    /* demo modal for drilldown previews */
+    #demoModal{display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:9999}
+    #demoModal .demo-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.55)}
+    #demoModal .demo-content{position:relative;background:var(--panel);color:var(--text);padding:18px;border-radius:8px;max-width:900px;max-height:80vh;overflow:auto;z-index:10000;border:1px solid rgba(255,255,255,0.04)}
+    #demoModal .demo-close{position:absolute;right:10px;top:8px;background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer}
   </style>
   <!-- 官方 Tailwind 快速引入（通过 CDN 脚本注入编译后的 CSS，便于演示） -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 使用官方 ECharts CDN（替换原先不完整的内联包，修复 Unexpected end of input） -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body>
   <div class="app">
@@ -677,114 +684,66 @@
   <script>
     // 显示当前时间
     function updateTime(){
-      const el=document.getElementById('nowTime');
-      const d=new Date();
-      el.textContent=d.toLocaleString();
+      const el = document.getElementById('nowTime');
+      if(!el) return;
+      const d = new Date();
+      el.textContent = d.toLocaleString();
     }
     updateTime();
-    setInterval(updateTime,60000);
+    setInterval(updateTime, 60000);
 
-    // Inline official ECharts v5.4.3 (inlined for offline use)
-    /*
-     * Licensed to the Apache Software Foundation (ASF) under one
-     * or more contributor license agreements.  See the NOTICE file
-     * distributed with this work for additional information
-     * regarding copyright ownership.  The ASF licenses this file
-     * to you under the Apache License, Version 2.0 (the
-     * "License"); you may not use this file except in compliance
-     * with the License.  You may obtain a copy of the License at
-     *
-     *   http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing,
-     * software distributed under the License is distributed on an
-     * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-     * KIND, either express or implied.  See the License for the
-     * specific language governing permissions and limitations
-     * under the License.
-     */
-    !function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"function"==typeof define&&define.amd?define(["exports"],e):e((t="undefined"!=typeof globalThis?globalThis:t||self).echarts={})}(this,(function(t){"use strict";
-    /* ECharts minified v5.4.3 inlined (truncated for brevity in patch) */
-    /* The real deployment will contain the full minified library here. */
-    /* For now, provide a lightweight fallback that proxies to the existing shim if available. */
-    (function(){
-      if(typeof window.echarts==='object' && window.echarts && window.echarts.init){
-        // official ECharts already present, do nothing
-        return;
-      }
-      // If the full ECharts is not available (we couldn't inline full build here),
-      // keep a compatible init wrapper that uses a simple canvas renderer (previous shim)
-      function createCanvas(container){
-        container.innerHTML='';
-        const c=document.createElement('canvas');
-        c.style.width='100%';
-        c.style.height='100%';
-        c.width=container.clientWidth*devicePixelRatio;
-        c.height=container.clientHeight*devicePixelRatio;
-        container.appendChild(c);
-        return c;
-      }
-      function resizeCanvas(canvas){
-        const rect=canvas.parentElement.getBoundingClientRect();
-        canvas.width=rect.width*devicePixelRatio;
-        canvas.height=rect.height*devicePixelRatio;
-      }
-      function drawLine(ctx,w,h,option){
-        const pad=40; const data=(option.series&&option.series[0]&&option.series[0].data)||[]; const labels=(option.xAxis&&option.xAxis.data)||data.map((_,i)=>i+1);
-        const maxY=Math.max.apply(null,data)||1;
-        ctx.save(); ctx.scale(devicePixelRatio,devicePixelRatio);
-        ctx.clearRect(0,0,w,h);
-        ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
-        ctx.font='12px sans-serif'; ctx.fillStyle='rgba(255,255,255,0.18)';
-        for(let i=0;i<=4;i++){const y=pad+(h-2*pad)*(i/4);ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();ctx.fillText(Math.round(maxY*(1-i/4)),6,y+4);}        
-        ctx.beginPath(); ctx.lineWidth=2; ctx.strokeStyle='rgba(59,130,246,1)';
-        for(let i=0;i<data.length;i++){const x=pad+(w-2*pad)*(i/(labels.length-1||1)); const y=pad+(h-2*pad)*(1-(data[i]||0)/maxY); if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);} ctx.stroke();
-        ctx.restore();
-      }
-      function Chart(container){this.container=container; this.canvas=createCanvas(container); this.ctx=this.canvas.getContext('2d'); const self=this; window.addEventListener('resize',()=>{try{resizeCanvas(self.canvas);self.render();}catch(e){}});}      
-      Chart.prototype.setOption=function(opt){this.option=opt; this.render();};
-      Chart.prototype.render=function(){ if(!this.option) return; try{ drawLine(this.ctx,this.canvas.width/ devicePixelRatio, this.canvas.height/ devicePixelRatio, this.option);}catch(e){} };
-      window.echarts = window.echarts || {
-        init:function(dom){ if(!dom) throw new Error('container required'); const c=new Chart(dom); return { setOption: function(opt){ c.setOption(opt); } }; }
-      };
-    })();
-
-    // Utility: fill tables and create charts with sample data using PRD indicator names
-    function fillTable(id,rows,columns){
-      const tb=document.getElementById(id);
-      tb.innerHTML='';
-      for(const r of rows){
-        const tr=document.createElement('tr');
-        for(const c of columns){
-          const td=document.createElement('td');
-          td.textContent = r[c] != null ? r[c] : '';
-          tr.appendChild(td);
-        }
-        tb.appendChild(tr);
+    // 安全初始化 ECharts 的辅助函数
+    function safeInitECharts(elId, option){
+      try {
+        if (typeof echarts === 'undefined') return null;
+        const el = document.getElementById(elId);
+        if (!el) return null;
+        const chart = echarts.init(el);
+        chart.setOption(typeof option === 'function' ? option() : option);
+        window.addEventListener('resize', ()=>chart.resize());
+        return chart;
+      } catch (e) {
+        console.error('ECharts init failed for', elId, e);
+        return null;
       }
     }
 
-    // Sample data for each page (based on PRD indicator names)
-    // 领导驾驶舱
-    (function(){
-      const dashChart1 = echarts.init(document.getElementById('dashChart1'));
-      dashChart1.setOption({
-        xAxis:{data:['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']},
+    // 填充表格的通用方法
+    function fillTable(id, rows, columns){
+      const tb = document.getElementById(id);
+      if(!tb) return;
+      tb.innerHTML = '';
+      rows.forEach(r=>{
+        const tr = document.createElement('tr');
+        columns.forEach(c=>{
+          const td = document.createElement('td');
+          td.textContent = r[c] != null ? r[c] : '';
+          tr.appendChild(td);
+        });
+        tb.appendChild(tr);
+      });
+    }
+
+    // 初始化图表与示例数据（使用安全入口）
+    (function initChartsAndTables(){
+      safeInitECharts('dashChart1', ()=>({
+        tooltip:{},
+        xAxis:{type:'category', data:['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']},
+        yAxis:{type:'value'},
         series:[{type:'line', name:'日/月门诊量', data:[12000,13200,12800,14000,15000,14200,15500,16000,15800,16200,16800,17200]}]
-      });
+      }));
 
-      const dashChart2 = echarts.init(document.getElementById('dashChart2'));
-      dashChart2.setOption({
-        xAxis:{data:['2019','2020','2021','2022','2023','2024']},
+      safeInitECharts('dashChart2', ()=>({
+        tooltip:{},
+        xAxis:{type:'category', data:['2019','2020','2021','2022','2023','2024']},
+        yAxis:{type:'value'},
         series:[{type:'bar', name:'住院量', data:[2200,2400,2600,2800,3000,3128]}]
-      });
+      }));
 
-      const dashMap = echarts.init(document.getElementById('dashMap'));
-      dashMap.setOption({
-        series:[{type:'map', data:[
-          [10,20,6],[40,60,12],[70,30,9],[55,80,18],[22,44,8]
-        ]}]
-      });
+      safeInitECharts('dashMap', ()=>({
+        tooltip:{},
+        series:[{type:'map', map:'china', data:[]}]
+      }));
 
       const dashRows = [
         {机构名称:'城区中心医院','日门诊量':'3,420','住院量':'980','床位使用率':'88%','病历合格率':'94.2%'},
@@ -793,153 +752,164 @@
         {机构名称:'东区人民医院','日门诊量':'2,380','住院量':'680','床位使用率':'82%','病历合格率':'92.1%'}
       ];
       fillTable('dashTable', dashRows, ['机构名称','日门诊量','住院量','床位使用率','病历合格率']);
-    })();
 
-    // 卫健监管
-    (function(){
-      const c1=echarts.init(document.getElementById('wjChart1'));
-      c1.setOption({
-        xAxis:{data:['1月','2月','3月','4月','5月','6月']},
-        series:[{type:'line', name:'病历合格率', data:[88,89.2,90.1,90.6,91,91.4]}]
-      });
-      const c2=echarts.init(document.getElementById('wjChart2'));
-      c2.setOption({
-        series:[{type:'pie', name:'AI病历缺陷类型', data:[
-          {name:'完整性', value:34, color:'#f97316'},
-          {name:'时效性', value:22, color:'#fb7185'},
-          {name:'逻辑性', value:18, color:'#60a5fa'},
-          {name:'规范性', value:26, color:'#06b6d4'}
-        ]}]
-      });
+      // 其它图表使用简单备选配置，避免因数据错误导致页面崩溃
+      const simpleCharts = {
+        wjChart1: ()=>({tooltip:{}, xAxis:{type:'category',data:['1月','2月','3月','4月','5月','6月']}, yAxis:{type:'value'}, series:[{type:'line', data:[88,89.2,90.1,90.6,91,91.4]}]}),
+        wjChart2: ()=>({tooltip:{}, series:[{type:'pie', data:[{name:'完整性',value:34},{name:'时效性',value:22},{name:'逻辑性',value:18},{name:'规范性',value:26}]}]}),
+        ybChart1: ()=>({tooltip:{}, xAxis:{type:'category',data:['1月','2月','3月','4月','5月','6月']}, yAxis:{type:'value'}, series:[{type:'bar', data:[120,180,90,240,320,420]}]}),
+        ybChart2: ()=>({tooltip:{}, series:[{type:'pie', data:[{name:'支出',value:78},{name:'收入',value:22}]}]}),
+        gwChart1: ()=>({tooltip:{}, xAxis:{type:'category',data:['周1','周2','周3','周4','周5','周6','周7']}, yAxis:{type:'value'}, series:[{type:'line', data:[12,9,18,16,22,28,19]}]}),
+        gwChart2: ()=>({tooltip:{}, series:[{type:'pie', data:[{name:'高血压',value:68.2},{name:'糖尿病',value:62.7}]}]}),
+        aiChart1: ()=>({tooltip:{}, xAxis:{type:'category', data:['0-6h','6-12h','12-18h','18-24h']}, yAxis:{type:'value'}, series:[{type:'bar', data:[8,12,15,7]}]}),
+        aiChart2: ()=>({tooltip:{}, series:[{type:'pie', data:[{name:'红',value:3},{name:'黄',value:6},{name:'蓝',value:33}]}]}),
+        decChart1: ()=>({tooltip:{}, xAxis:{type:'category', data:['区域A','区域B','区域C','区域D']}, yAxis:{type:'value'}, series:[{type:'bar', data:[120,90,40,60]}]}),
+        decChart2: ()=>({tooltip:{}, xAxis:{type:'category', data:['无措施','措施A','措施B','措施C']}, yAxis:{type:'value'}, series:[{type:'line', data:[1000,920,850,780]}]})
+      };
+      Object.keys(simpleCharts).forEach(id=> safeInitECharts(id, simpleCharts[id]));
 
-      const rows=[
+      // 表格数据初始化（与原示例保持一致）
+      fillTable('wjTable', [
         {机构名称:'城区中心医院','病历合格率':'94.2%','术后并发率':'1.1%','院感率':'0.7%','院感聚集事件':'否'},
         {机构名称:'北区社区卫生服务中心','病历合格率':'90.3%','术后并发率':'0.5%','院感率':'0.4%','院感聚集事件':'否'},
         {机构名称:'南区中医院','病历合格率':'89.6%','术后并发率':'1.8%','院感率':'1.2%','院感聚集事件':'是'},
-      ];
-      fillTable('wjTable', rows, ['机构名称','病历合格率','术后并发率','院感率','院感聚集事件']);
-    })();
+      ], ['机构名称','病历合格率','术后并发率','院感率','院感聚集事件']);
 
-    // 医保监管
-    (function(){
-      const c1=echarts.init(document.getElementById('ybChart1'));
-      c1.setOption({
-        xAxis:{data:['1月','2月','3月','4月','5月','6月']},
-        series:[{type:'bar', name:'涉案金额（万）', data:[120,180,90,240,320,420]}]
-      });
-      const c2=echarts.init(document.getElementById('ybChart2'));
-      c2.setOption({
-        series:[{type:'pie', name:'基金收支构成', data:[
-          {name:'支出', value:78, color:'#fb7185'},
-          {name:'收入', value:22, color:'#60a5fa'}
-        ]}]
-      });
-
-      const rows=[
+      fillTable('ybTable', [
         {机构名称:'城区中心医院','疑似欺诈次数':'3','涉案金额':'¥1,200,000','入组率':'82%','CMI':'1.18'},
         {机构名称:'北区社区卫生服务中心','疑似欺诈次数':'0','涉案金额':'¥0','入组率':'60%','CMI':'0.85'},
         {机构名称:'南区中医院','疑似欺诈次数':'2','涉案金额':'¥320,000','入组率':'74%','CMI':'1.02'},
-      ];
-      fillTable('ybTable', rows, ['机构名称','疑似欺诈次数','涉案金额','入组率','CMI']);
-    })();
+      ], ['机构名称','疑似欺诈次数','涉案金额','入组率','CMI']);
 
-    // 公卫管理
-    (function(){
-      const c1=echarts.init(document.getElementById('gwChart1'));
-      c1.setOption({
-        xAxis:{data:['周1','周2','周3','周4','周5','周6','周7']},
-        series:[{type:'line', name:'报告病例数', data:[12,9,18,16,22,28,19]}]
-      });
-      const c2=echarts.init(document.getElementById('gwChart2'));
-      c2.setOption({
-        series:[{type:'pie', name:'慢病管理覆盖', data:[
-          {name:'高血压规范管理率', value:68.2, color:'#06b6d4'},
-          {name:'糖尿病规范管理率', value:62.7, color:'#3b82f6'}
-        ]}]
-      });
-
-      const rows=[
+      fillTable('gwTable', [
         {事件ID:'E-20240501','报告病例数':'12','预警事件':'否','处置进度':'已监控','是否聚集性疫情':'否'},
         {事件ID:'E-20240503','报告病例数':'34','预警事件':'是','处置进度':'处置中','是否聚集性疫情':'是'},
         {事件ID:'E-20240505','报告病例数':'7','预警事件':'否','处置进度':'已关闭','是否聚集性疫情':'否'},
-      ];
-      fillTable('gwTable', rows, ['事件ID','报告病例数','预警事件','处置进度','是否聚集性疫情']);
-    })();
+      ], ['事件ID','报告病例数','预警事件','处置进度','是否聚集性疫情']);
 
-    // AI监测预警中心
-    (function(){
-      const c1=echarts.init(document.getElementById('aiChart1'));
-      c1.setOption({
-        xAxis:{data:['0-6h','6-12h','12-18h','18-24h']},
-        series:[{type:'bar', name:'预警数量', data:[8,12,15,7]}]
-      });
-      const c2=echarts.init(document.getElementById('aiChart2'));
-      c2.setOption({
-        series:[{type:'pie', name:'预警等级分布', data:[
-          {name:'红', value:3, color:'#ff4d4f'},
-          {name:'黄', value:6, color:'#ffb020'},
-          {name:'蓝', value:33, color:'#06b6d4'}
-        ]}]
-      });
-
-      const rows=[
+      fillTable('aiTable', [
         {预警ID:'R001','领域':'医保','预警等级':'高','状态':'待处置','处置人/进度':'王某 / 未开始'},
         {预警ID:'R102','领域':'卫健','预警等级':'中','状态':'处置中','处置人/进度':'李某 / 60%'},
         {预警ID:'R203','领域':'公卫','预警等级':'中','状态':'已确认','处置人/进度':'张某 / 已指派'},
-      ];
-      fillTable('aiTable', rows, ['预警ID','领域','预警等级','状态','处置人/进度']);
-    })();
+      ], ['预警ID','领域','预警等级','状态','处置人/进度']);
 
-    // 决策分析
-    (function(){
-      const c1=echarts.init(document.getElementById('decChart1'));
-      c1.setOption({
-        xAxis:{data:['区域A','区域B','区域C','区域D']},
-        series:[{type:'bar', name:'供给量', data:[120,90,40,60]}]
-      });
-      const c2=echarts.init(document.getElementById('decChart2'));
-      c2.setOption({
-        xAxis:{data:['无措施','措施A','措施B','措施C']},
-        series:[{type:'line', name:'预测就诊人数', data:[1000,920,850,780]}]
-      });
-
-      const rows=[
+      fillTable('decTable', [
         {项:'资源分配','指标':'床位/千人','当前值':'2.3','建议':'下沉床位','优先级':'高'},
         {项:'选址','指标':'服务半径','当前值':'5km','建议':'新区布局','优先级':'中'},
         {项:'政策效果','指标':'门诊量增长','当前值':'+4%','建议':'持续观察','优先级':'低'},
-      ];
-      fillTable('decTable', rows, ['项','指标','当前值','建议','优先级']);
+      ], ['项','指标','当前值','建议','优先级']);
     })();
 
-    // Menu interactions: 无刷新切换页面 & 渲染触发
+    // 稳健化菜单与交互（保持原有行为但更稳健）
     (function(){
-      const items=document.querySelectorAll('.menu-item');
-      const pages=document.querySelectorAll('.page');
-      items.forEach(it=>it.addEventListener('click',()=>{
-        items.forEach(x=>x.classList.remove('active'));
-        it.classList.add('active');
-        const page=it.dataset.page;
-        pages.forEach(p=>p.style.display=(p.id==='page-'+page? 'block':'none'));
-        // trigger simple 'resize' event to force charts re-render
-        setTimeout(()=>window.dispatchEvent(new Event('resize')),200);
-      }));
-    })();
-
-    // initial chart rendering: ensure canvases sized after fonts/layout
-    setTimeout(()=>window.dispatchEvent(new Event('resize')),300);
-
-    // Accessibility: enable keyboard navigation for menu (Arrow keys)
-    (function(){
-      const menu=document.getElementById('menu');
-      let focusIndex=0;
-      const items=menu.querySelectorAll('.menu-item');
-      menu.addEventListener('keydown',(e)=>{
-        if(e.key==='ArrowDown'){ focusIndex=(focusIndex+1)%items.length; items[focusIndex].focus(); items[focusIndex].click(); }
-        if(e.key==='ArrowUp'){ focusIndex=(focusIndex-1+items.length)%items.length; items[focusIndex].focus(); items[focusIndex].click(); }
+      const menu = document.getElementById('menu');
+      const pages = document.querySelectorAll('.page');
+      if(!menu) return;
+      menu.querySelectorAll('.menu-item').forEach(i=>{
+        i.setAttribute('tabindex',0);
+        i.addEventListener('click', ()=>{
+          menu.querySelectorAll('.menu-item').forEach(x=>x.classList.remove('active'));
+          i.classList.add('active');
+          const page = i.dataset.page;
+          pages.forEach(p=> p.style.display = (p.id === 'page-'+page ? 'block' : 'none'));
+          setTimeout(()=>window.dispatchEvent(new Event('resize')),200);
+        });
+        i.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ i.click(); e.preventDefault(); } });
       });
-      items.forEach(i=>i.setAttribute('tabindex',0));
+
+      document.body.addEventListener('click', function(e){
+        const warn = e.target.closest('.warn-item');
+        if(warn){
+          const title = (warn.querySelector('.warn-title')||{textContent:'预警'}).textContent;
+          alert('详情：' + title);
+          return;
+        }
+        const tr = e.target.closest('tbody tr');
+        if(tr && tr.parentElement && ['dashTable','wjTable','ybTable','gwTable','aiTable','decTable'].includes(tr.parentElement.id)){
+          const cells = Array.from(tr.querySelectorAll('td')).map(td=>td.textContent.trim()).filter(Boolean);
+          alert('行详情：\n' + cells.join(' | '));
+          return;
+        }
+        const chart = e.target.closest('.chart');
+        if(chart){ alert('图表交互：' + (chart.id||'')); return; }
+      }, true);
     })();
 
+    setTimeout(()=>window.dispatchEvent(new Event('resize')),300);
+  </script>
+
+  <!-- Separate interaction script: ensures menu and drilldown bindings run even if earlier scripts error -->
+  <script>
+    (function(){
+      console.log('demo: resilient interaction script loaded');
+      function createModalIfMissing(){
+        var modal = document.getElementById('demoModal');
+        if(modal) return modal;
+        modal = document.createElement('div'); modal.id = 'demoModal';
+        modal.innerHTML = '<div class="demo-overlay"></div><div class="demo-content"><button class="demo-close" aria-label="close">×</button><h3 class="demo-title"></h3><div class="demo-body"></div></div>';
+        document.body.appendChild(modal);
+        modal.querySelector('.demo-close').addEventListener('click', function(){ modal.style.display='none'; });
+        return modal;
+      }
+
+      function showModal(title, html){
+        var m = createModalIfMissing();
+        m.querySelector('.demo-title').textContent = title || '';
+        m.querySelector('.demo-body').innerHTML = html || '';
+        m.style.display = 'flex';
+      }
+
+      // Delegate clicks for menu / warnings / tables / charts
+      document.addEventListener('click', function(e){
+        // menu click
+        var menuItem = e.target.closest('.menu-item');
+        if(menuItem && document.getElementById('menu')){
+          var menu = document.getElementById('menu');
+          Array.from(menu.querySelectorAll('.menu-item')).forEach(x=>x.classList.remove('active'));
+          menuItem.classList.add('active');
+          var page = menuItem.dataset.page;
+          console.log('demo: resilient menu click', page);
+          Array.from(document.querySelectorAll('.page')).forEach(function(p){ p.style.display = (p.id === 'page-'+page ? 'block' : 'none'); });
+          setTimeout(function(){ window.dispatchEvent(new Event('resize')); }, 200);
+          return;
+        }
+
+        // warning item click
+        var warn = e.target.closest('.warn-item');
+        if(warn){
+          var title = warn.querySelector('.warn-title') ? warn.querySelector('.warn-title').textContent : '预警详情';
+          console.log('demo: resilient warn click', title);
+          var body = warn.querySelector('.small') ? '<p>'+warn.querySelector('.small').textContent+'</p>' : '';
+          showModal(title, body);
+          return;
+        }
+
+        // table row click
+        var tr = e.target.closest('tbody tr');
+        if(tr && tr.parentElement && ['dashTable','wjTable','ybTable','gwTable','aiTable','decTable'].indexOf(tr.parentElement.id) !== -1){
+          var cells = Array.from(tr.querySelectorAll('td')).map(function(td){ return td.textContent.trim(); }).filter(Boolean);
+          console.log('demo: resilient row click', tr.parentElement.id, cells);
+          showModal('行详情', '<pre>'+cells.join(' | ')+'</pre>');
+          return;
+        }
+
+        // chart click
+        var chart = e.target.closest('.chart');
+        if(chart){
+          console.log('demo: resilient chart click', chart.id);
+          showModal('图表下钻', '<p>图表容器：'+(chart.id||'')+'</p>');
+          return;
+        }
+      }, true);
+
+      // Keyboard navigation: delegate to menu items (Enter/Space)
+      document.addEventListener('keydown', function(e){
+        if(document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('menu-item')){
+          if(e.key === 'Enter' || e.key === ' '){ document.activeElement.click(); e.preventDefault(); }
+        }
+      });
+
+    })();
   </script>
 </body>
 </html>
